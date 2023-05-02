@@ -1,92 +1,60 @@
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
+    private static final String PATH_TO_FILE = "russian_nouns.txt";
+    private static final int ERROR_MAX = 7;      // максимальное количество ошибок
+    private static final Scanner inputConsole = new Scanner(System.in);
+    private static int errorCount;
+
     public static void main(String[] args) throws IOException {
         do {
             gameLoop();
         } while (askPlayerContinueGame());
     }
-    private static final String PATH_TO_FILE  = "russian_nouns.txt";
-    private static int errorCount;
-    private static final int ERROR_MAX = 7;      // максимальное количество ошибок
-    private static final int BOARD_COL = 8;  // длина поля
-    private static final int BOARD_ROW = 7;  // Высота поля
-    public static void gameLoop () throws IOException {
+
+    public static void gameLoop() throws IOException {
         String gameWord = getWordFromFile(PATH_TO_FILE).toUpperCase();  // получение слова из словаря
         String hiddenWord = wordEncryption(gameWord);          // Скрытие слова
-        String[][] board = createBoard(); // Создание игрового поля
         errorCount = 0;                     // обнуление ошибок
-        String enteredLetters = "";         //обнуление строки введенных слов
-        while (CheckGameEnd(gameWord,hiddenWord)){                   // запуск цикла программы проверка не закончена ли игра
-            printBoard(board,hiddenWord,enteredLetters);   // отрисовка поля в консоле
-            char ch = playerTurn(enteredLetters);// Ход игрока
-            enteredLetters = enteredLetters +ch;
-            if (gameWord.indexOf(ch)>-1) {       // проверка наличия буквы в слове
-                hiddenWord = openHiddenLetter(ch,gameWord,hiddenWord);  // Открытие совпавших букв
+        ArrayList<Character> enteredLetters = new ArrayList<>();         //обнуление строки введенных слов
+        while (checkGameEnd(gameWord, hiddenWord)) {                   // запуск цикла программы проверка не закончена ли игра
+            printBoard(errorCount, hiddenWord, enteredLetters.toString());   // вывод состояния игры в консоль
+            char ch = playerTurn(enteredLetters.toString());// Ход игрока
+            enteredLetters.add(ch);
+            if (gameWord.indexOf(ch) > -1) {       // проверка наличия буквы в слове
+                hiddenWord = openHiddenLetter(ch, gameWord, hiddenWord);  // Открытие совпавших букв
             } else {
                 errorCount++;
-                addHumanPartOnBoard(errorCount, board);
             }
         }
     }
 
-    public static String getWordFromFile (String filePath) throws IOException{
-        //try {
-        String word ;
+    public static String getWordFromFile(String filePath) throws IOException {
+        String word;
         List<String> words = Files.readAllLines(Paths.get(filePath));
         do {
-                /*File file = new File(filePath);
-                FileReader fr = new FileReader(file);
-                BufferedReader bf = new BufferedReader(fr);
-                int j = (int) (Math.random()*51300);
-                for (int i = 0; i < j; i++) {
-                    bf.readLine();
-                }
-                word= bf.readLine();*/
-            word = words.get(new Random().nextInt(words.size()) );
-        } while (word.length()<5);
+            word = words.get(new Random().nextInt(words.size()));
+        } while (word.length() < 5);
         return word;
-            /*}
-        catch (FileNotFoundException e){
-            e.printStackTrace();
-            return "Даздраперма";
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return "Владилен";
-        } */
-
     }
+
     public static String wordEncryption(String gameWord) {
-        char [] buffer = gameWord.toCharArray();
+        char[] buffer = gameWord.toCharArray();
         for (int i = 0; i < gameWord.length(); i++) {   // формирование закрытого слова
-            buffer[i]='*';
+            buffer[i] = '*';
         }
         return String.valueOf(buffer);
     }
-    public static String[][] createBoard(){                 // Создание поля
-        String[][] board = new String[BOARD_ROW][BOARD_COL]; //создаем матрицу внутри метода по размерам из класса
-        for (int row = 0; row < BOARD_ROW ; row++) {         // рисуем в матрице столб
-            board [row][BOARD_COL-1] = "|";
-        }
-        for (int col = 0; col < BOARD_COL; col++) {          // рисуем в матрице штангу и землю
-            board[0][col] = "_";
-            board[BOARD_ROW-1][col]="_";
-        }
-        for (int row = 1; row <BOARD_ROW-1 ; row++) {          // Остальное поле в матрице заполняем пустотой
-            for (int col = 0; col < BOARD_COL-1 ; col++) {
-                board[row][col]=" ";
-            }
-        }
-        return board;
-    }
-    public static boolean CheckGameEnd(String gameWord,String hiddenWord){
+
+    public static boolean checkGameEnd(String gameWord, String hiddenWord) {
         if (errorCount == ERROR_MAX) {            // если количество попыток исчерпано
+            printHuman(errorCount);
             System.out.println("загаданное слово - " + gameWord);
             System.out.println("Вы проиграли");
             return false;
@@ -99,82 +67,111 @@ public class Main {
         }
         return true;  // игра не закончена
     }
-    public static void printBoard(String[][] board,String hiddenWord,String enteredLetters){
-        for (int row = 0; row <BOARD_ROW ; row++) {
-            System.out.println();
-            for (int col = 0; col <BOARD_COL; col++) {
-                System.out.print(board[row][col]);
-            }
-        }
-        System.out.println();
-        System.out.println("Ранее введенные буквы " );
-        StringBuilder buf = new StringBuilder();
-        for (char x:enteredLetters.toCharArray()) {
-            buf.append(x).append(' ') ;
-        }
 
-        System.out.println(buf);
-        System.out.println("Загадано слово из " +hiddenWord.length() +" букв:");
+    public static void printBoard(int errorCount, String hiddenWord, String enteredLetters) {
+        printHuman(errorCount);
+        System.out.println();
+        System.out.println("Ранее введенные буквы ");
+        System.out.println(enteredLetters);
+        System.out.println("Загадано слово из " + hiddenWord.length() + " букв:");
         System.out.println(hiddenWord);
     }
+
     public static char playerTurn(String enteredLetters) {
-        Scanner input = new Scanner(System.in);
-        char ch ;
-        String enteredPlayerString ;
+
+        char ch;
+        String enteredPlayerString;
+
+        boolean correctInput = false;
+        System.out.println("Введите 1 букву русского алфавита и нажмите enter");
         do {
-            do {
-                System.out.println("Введите 1 букву русского алфавита и нажмите enter");
-                enteredPlayerString =  input.next();
-            } while (enteredPlayerString.length()!=1);
+            enteredPlayerString = inputConsole.next();
             ch = Character.toUpperCase(enteredPlayerString.charAt(0));
-            if (enteredLetters.indexOf(ch)>-1) {
-                System.out.println("Вы ранее вводили эту букву");
-                ch = 0;
+            if ((enteredPlayerString.length() != 1) || (Character.UnicodeBlock.of(ch) != Character.UnicodeBlock.CYRILLIC)) {
+                System.out.println("Введите 1 букву русского алфавита и нажмите enter");
+                continue;
             }
-        } while ( Character.UnicodeBlock.of(ch) != Character.UnicodeBlock.CYRILLIC);
-        return  Character.toUpperCase(ch);
+            if (enteredLetters.indexOf(ch) > -1) {
+                System.out.println("Вы ранее вводили эту букву");
+                continue;
+            }
+            correctInput = true;
+        } while (!correctInput);
+        return ch;
     }
-    public static void addHumanPartOnBoard(int errorCount,String[][] board){               // Добавление элементов туловища через switch в доску
+
+    public static void printHuman(int errorCount) {
+        System.out.println("--------");
+        int i = 1;
         switch (errorCount) {
-            case 7:
-                board[4][4] = "|"; // нарисовать правую ногу
-            case 6:
-                board[4][2] = "|"; // нарисовать левую ногу
-            case 5:
-                board[3][4] = "-"; // нарисовать правую руку
-            case 4:
-                board[3][2] = "-"; // нарисовать левую руку
-            case 3:
-                board[3][3] = "|"; // нарисовать туловище
-            case 2:
-                board[2][3] = "0"; // нарисовать голову
-            case 1:
-                board[1][3] = "|"; // Нарисовать веревку
+            case 0 -> i = 5;
+            case 1 -> {
+                System.out.println("   |   |");
+                i = 4;
+            }
+            case 2 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                i = 3;
+            }
+            case 3 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                System.out.println("   |   |");
+                i = 2;
+            }
+            case 4 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                System.out.println("  -|   |");
+                i = 2;
+            }
+            case 5 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                System.out.println("  -|-  |");
+                i = 2;
+            }
+            case 6 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                System.out.println("  -|-  |");
+                System.out.println("  |    |");
+            }
+            case 7 -> {
+                System.out.println("   |   |");
+                System.out.println("   0   |");
+                System.out.println("  -|-  |");
+                System.out.println("  | |  |");
+            }
         }
+        for (int j = 0; j < i; j++) {
+            System.out.println("       |");
+        }
+        System.out.println("_______|");
+
     }
-    public static String openHiddenLetter(char ch,String gameWord,String hiddenWord){
+
+    public static String openHiddenLetter(char ch, String gameWord, String hiddenWord) {
         char[] bufferHidden = hiddenWord.toCharArray();
         char[] bufferGameWord = gameWord.toCharArray();
         for (int i = gameWord.indexOf(ch); i < gameWord.length(); i++) {
-            if (bufferGameWord[i]==ch){
+            if (bufferGameWord[i] == ch) {
                 bufferHidden[i] = ch;
             }
         }
         return String.valueOf(bufferHidden);
     }
-    public static boolean askPlayerContinueGame(){
+
+    public static boolean askPlayerContinueGame() {
         System.out.println();
         System.out.println("Хотите повторить игру ?");
-        Scanner input = new Scanner(System.in);
-        String vvod = "" ;
-        while (!vvod.equalsIgnoreCase("ДА")  && !vvod.equalsIgnoreCase("НЕТ")){
-            System.out.println();
+        String vvod;
+        do {
             System.out.println("Введите ДА для повторения игры");
-            System.out.println();
             System.out.println("Введите НЕТ для окончания игры");
-            vvod = input.nextLine().toUpperCase();
-            System.out.println(vvod);
-        }
+            vvod = inputConsole.next();
+        } while (!vvod.equalsIgnoreCase("ДА") && !vvod.equalsIgnoreCase("НЕТ"));
         return vvod.equalsIgnoreCase("ДА");
 
     }
